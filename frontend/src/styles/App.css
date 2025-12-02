@@ -1,0 +1,158 @@
+/* Global scroll only for home page, not chat */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+  background: url("/orb-bg.png") no-repeat center center fixed;
+  background-size: cover;
+  color: #ffffff;
+  height: 100%;
+}
+
+/* ================= HEADER ================= */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(14px);
+  height: 70px;
+}
+
+.brand-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-orb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #4bc8ff, #1b3aa3);
+  box-shadow: 0 0 18px #46c4ff;
+}
+
+.brand-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #3bbdf8, #818cf8);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle {
+  font-size: 0.74rem;
+  opacity: 0.85;
+}
+
+/* ================= HOME PAGE ================= */
+.home-layout {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40px 10px;
+}
+
+.home-title {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #ffffff;
+
+  /* Dark Thick Outline */
+  text-shadow:
+    -2px -2px 5px rgba(0,0,0,1),
+     2px -2px 5px rgba(0,0,0,1),
+    -2px  2px 5px rgba(0,0,0,1),
+     2px  2px 5px rgba(0,0,0,1);
+}
+
+.home-subtitle {
+  font-size: 1.6rem;
+  margin-top: 10px;
+  color: #ffffff;
+
+  /* Outline */
+  text-shadow:
+    -2px -2px 4px rgba(0,0,0,0.9),
+     2px -2px 4px rgba(0,0,0,0.9),
+    -2px  2px 4px rgba(0,0,0,0.9),
+     2px  2px 4px rgba(0,0,0,0.9);
+}
+
+.home-points li {
+  font-size: 1.2rem;
+  margin: 8px 0;
+  list-style: none;
+  color: #ffffff;
+
+  /* Outline */
+  text-shadow:
+    -1.5px -1.5px 3px rgba(0,0,0,0.9),
+     1.5px -1.5px 3px rgba(0,0,0,0.9),
+    -1.5px  1.5px 3px rgba(0,0,0,0.9),
+     1.5px  1.5px 3px rgba(0,0,0,0.9);
+}
+
+.hero-btn {
+  padding: 16px 40px;
+  margin-top: 22px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(90deg,#d946ef,#6366f1,#22d3ee);
+  color: white;
+  cursor: pointer;
+}
+
+/* ================= CHAT PAGE (New Layout) ================= */
+.chat-container {
+  display: flex;
+  height: calc(100vh - 70px);
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(12px);
+}
+
+/* Sidebar Wrapper */
+.sidebar-wrapper {
+  width: 300px;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  overflow-y: auto;
+  background: rgba(10, 20, 40, 0.7);
+}
+
+/* Chat Wrapper */
+.chat-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(5, 10, 30, 0.7);
+}
+
+.chat-wrapper > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Scrollbar */
+.sidebar-wrapper::-webkit-scrollbar,
+.chat-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-wrapper::-webkit-scrollbar-thumb,
+.chat-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+}

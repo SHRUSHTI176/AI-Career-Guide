@@ -1,0 +1,11 @@
+# Backend
+backend-ai/venv/
+backend-ai/__pycache__/
+backend-ai/.env
+
+# Frontend
+frontend/node_modules/
+
+# System files
+.DS_Store
+*.log

@@ -1,0 +1,192 @@
+/* SIDEBAR */
+.sidebar {
+  width: 300px;
+  background: rgba(14, 20, 38, 0.96);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255,255,255,0.15);
+  color: #ffffff;
+}
+
+/* Scrollbar */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.25);
+  border-radius: 10px;
+}
+
+/******** USER PROFILE SECTION ********/
+.user-profile-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-sidebar-avatar {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #00c4ff;
+  box-shadow: 0 0 10px rgba(0,196,255,0.5);
+  cursor: pointer;
+}
+
+.sidebar-username {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sidebar-btn-small {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+}
+.sidebar-btn-small:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin: 8px 0;
+}
+
+/******** SECTION TITLES ********/
+.sidebar-section h4 {
+  font-size: 14px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+/******** NEW CHAT + ADD FOLDER ********/
+.new-chat-menu {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.new-chat-btn,
+.add-folder-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  border: none;
+  color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.18s;
+}
+.add-folder-btn {
+  background: rgba(255,255,255,0.12);
+}
+.new-chat-btn:hover,
+.add-folder-btn:hover {
+  opacity: 0.92;
+}
+
+/******** SESSION ROWS ********/
+.session-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.18s;
+  margin-bottom: 6px;
+  position: relative;
+}
+.session-row:hover {
+  background: rgba(255,255,255,0.15);
+}
+.session-row.active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.session-title {
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/******** 3 DOT MENU ********/
+.menu-dots-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.75;
+  padding: 5px;
+}
+.menu-dots-btn:hover {
+  opacity: 1;
+}
+
+/******** DROPDOWN MENU ********/
+.dropdown-menu {
+  position: absolute;
+  right: 8px;
+  top: 40px;
+  background: rgba(25, 30, 48, 0.98);
+  border-radius: 8px;
+  padding: 6px 0;
+  min-width: 140px;
+  z-index: 99;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+}
+
+.dropdown-menu button {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #ffffff;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.dropdown-menu button:hover {
+  background: rgba(255,255,255,0.12);
+  opacity: 1;
+}
+
+.dropdown-menu .delete-option {
+  color: #ff7878;
+}
+
+/******** FOLDER CHIPS ********/
+.folder-chip {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin: 4px 6px 0 0;
+  font-weight: 600;
+  cursor: default;
+}
+
+/******** MISC ********/
+.muted-text {
+  opacity: 0.65;
+  font-size: 12px;
+}

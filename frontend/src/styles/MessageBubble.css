@@ -1,0 +1,48 @@
+.msg-row {
+  display: flex;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.msg-row.user {
+  justify-content: flex-end;
+}
+
+.msg-bubble {
+  max-width: 75%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 0.97rem;
+  line-height: 1.42;
+  word-break: break-word;
+}
+
+.msg-bubble.user {
+  background: #007aff;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-bubble.ai {
+  background: #1d273b;
+  color: #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+
+/* Avatar bubbles */
+.bubble-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  margin: 0 10px;
+}
+
+.ai-avatar {
+  background-image: url("/ai-avatar.png");
+}
+
+.user-avatar {
+  background: #3b82f6;
+}
