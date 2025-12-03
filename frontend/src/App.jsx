@@ -6,7 +6,7 @@ import { useSessions } from "./hooks/useSessions";
 import "./styles/global.css";
 import "./styles/App.css";
 import "./styles/Sidebar.css";
-import "./styles/Chat.css";
+import "./styles/chat.css";
 
 const App = () => {
   const [theme, setTheme] = useState("dark");
