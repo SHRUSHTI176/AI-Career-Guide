@@ -1,10 +1,57 @@
 // src/components/MessageBubble.jsx
-import React from "react";
+import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const MessageBubble = ({ role, text, theme }) => {
   const isUser = role === "user";
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const handleSpeak = () => {
+    const synth = window.speechSynthesis;
+
+    // Stop speaking
+    if (isSpeaking && !isPaused) {
+      synth.cancel();
+      setIsSpeaking(false);
+      setIsPaused(false);
+      return;
+    }
+
+    // Resume if paused
+    if (isPaused) {
+      synth.resume();
+      setIsPaused(false);
+      return;
+    }
+
+    // Start new speak
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "en-US";
+    utter.rate = 1.07;
+
+    utter.onend = () => {
+      setIsSpeaking(false);
+      setIsPaused(false);
+    };
+
+    synth.speak(utter);
+    setIsSpeaking(true);
+    setIsPaused(false);
+  };
+
+  const handlePause = () => {
+    if (!isSpeaking) return;
+    window.speechSynthesis.pause();
+    setIsPaused(true);
+  };
+
+  const getLabel = () => {
+    if (isPaused) return "▶ Resume";
+    if (isSpeaking) return "⏸ Pause / ⏹ Stop";
+    return "🔊 Speak";
+  };
 
   return (
     <div className={`msg-row ${isUser ? "user" : "ai"}`}>
@@ -44,6 +91,28 @@ const MessageBubble = ({ role, text, theme }) => {
         >
           {text}
         </ReactMarkdown>
+
+        {/* 🎤 Speaker Button - Single Toggle */}
+        {!isUser && (
+          <button
+            onClick={() => {
+              if (isSpeaking && !isPaused) handlePause();
+              else handleSpeak();
+            }}
+            style={{
+              marginTop: "8px",
+              background: "transparent",
+              color: "#60a5fa",
+              border: "none",
+              padding: "4px 6px",
+              cursor: "pointer",
+              fontSize: "0.85rem",
+              fontWeight: "600",
+            }}
+          >
+            {getLabel()}
+          </button>
+        )}
       </div>
 
       {isUser && <div className="bubble-avatar user-avatar" />}
