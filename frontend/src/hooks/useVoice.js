@@ -11,60 +11,65 @@ export const useVoice = ({ onTranscript }) => {
   const synthRef = useRef(window.speechSynthesis || null);
   const recogRef = useRef(null);
   const voicesRef = useRef([]);
+  const latestTextRef = useRef(""); // NEW: stores latest AI message
 
   const loadVoices = () => {
     const voices = synthRef.current.getVoices();
     voicesRef.current = voices;
   };
 
-  const getFemaleVoice = () => {
+  const getBestFemaleVoice = () => {
     const voices = voicesRef.current;
 
     return (
-      voices.find((v) => v.name.includes("Google UK English Female")) ||
-      voices.find((v) => v.name.includes("Google US English")) ||
-      voices.find((v) => /Female|Woman|Siri|Zira|Jenny|Aria/i.test(v.name)) ||
+      voices.find(v => /female|woman|siri|zira|aria|jenny/i.test(v.name)) ||
+      voices.find(v => v.name.toLowerCase().includes("english")) ||
       voices[0]
     );
   };
 
   const filterSpeechText = (text) => {
     return cleanForSpeech(text)
-      .replace(/[^\w\s.,!?]/g, "") 
+      .replace(/[^\w\s.,!?]/g, "")
       .replace(/\s+/g, " ")
       .trim();
   };
 
-  let currentUtterance = null;
-
-  const speakText = (text) => {
+  const speak = (text) => {
     const synth = synthRef.current;
     if (!synth) return;
 
-    const cleaned = filterSpeechText(text);
-    if (!cleaned) return;
+    const cleanedText = filterSpeechText(text);
+    if (!cleanedText) return;
+
+    latestTextRef.current = cleanedText;
 
     if (synth.speaking) synth.cancel();
 
-    const utter = new SpeechSynthesisUtterance(cleaned);
-    currentUtterance = utter;
-    
-    utter.pitch = 1;
-    utter.rate = 1;
-    utter.volume = 1;
+    const utter = new SpeechSynthesisUtterance(cleanedText);
 
-    const voice = getFemaleVoice();
+    const voice = getBestFemaleVoice();
     if (voice) utter.voice = voice;
 
-    utter.onstart = () => setState({ speaking: true, paused: false, listening: false });
-    utter.onend = () => setState({ speaking: false, paused: false, listening: false });
+    utter.pitch = 1;
+    utter.rate = 1;
+
+    utter.onstart = () =>
+      setState({ speaking: true, paused: false, listening: false });
+
+    utter.onend = () =>
+      setState({ speaking: false, paused: false, listening: false });
 
     synth.speak(utter);
   };
 
+  const startSpeaking = () => {
+    speak(latestTextRef.current);
+  };
+
   const pauseSpeaking = () => {
     const synth = synthRef.current;
-    if (synth?.speaking && !synth?.paused) {
+    if (synth?.speaking && !synth.paused) {
       synth.pause();
       setState((prev) => ({ ...prev, paused: true }));
     }
@@ -79,20 +84,17 @@ export const useVoice = ({ onTranscript }) => {
   };
 
   const stopSpeaking = () => {
-    const synth = synthRef.current;
-    synth?.cancel();
+    synthRef.current?.cancel();
     setState({ speaking: false, paused: false, listening: false });
   };
 
   useEffect(() => {
     if (!synthRef.current) return;
     loadVoices();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices;
-    }
+    speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
 
-  // Voice-to-text setup
+  // ⭐ Speech-to-text (unchanged from your old code)
   useEffect(() => {
     if ("webkitSpeechRecognition" in window) {
       const Rec = window.webkitSpeechRecognition;
@@ -129,7 +131,8 @@ export const useVoice = ({ onTranscript }) => {
 
   return {
     state,
-    speakText,
+    latestTextRef,
+    startSpeaking,
     pauseSpeaking,
     resumeSpeaking,
     stopSpeaking,
