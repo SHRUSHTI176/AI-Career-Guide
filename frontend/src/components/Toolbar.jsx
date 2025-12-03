@@ -1,3 +1,4 @@
+// src/components/Toolbar.jsx
 import React, { useRef } from "react";
 
 const Toolbar = ({
@@ -5,6 +6,8 @@ const Toolbar = ({
   onExportPDF,
   speechState,
   startSpeaking,
+  pauseSpeaking,
+  resumeSpeaking,
   stopSpeaking,
   startListening,
   stopListening,
@@ -22,8 +25,19 @@ const Toolbar = ({
     }
   };
 
+  const handleSpeakerClick = () => {
+    if (!speechState.speaking) {
+      startSpeaking();
+    } else if (speechState.paused) {
+      resumeSpeaking();
+    } else {
+      pauseSpeaking();
+    }
+  };
+
   return (
     <div className="toolbar">
+      {/* Upload Image/PDF */}
       <input
         ref={fileInputRef}
         type="file"
@@ -42,7 +56,7 @@ const Toolbar = ({
         📎
       </button>
 
-      {/* Speech to text */}
+      {/* Speech-to-Text 🎙 */}
       {speechState.listening ? (
         <button
           type="button"
@@ -63,28 +77,39 @@ const Toolbar = ({
         </button>
       )}
 
-      {/* Text to speech */}
+      {/* Text-to-Speech 🔊 */}
       {speechState.speaking ? (
-        <button
-          type="button"
-          className="toolbar-btn speaking"
-          title="Stop reading"
-          onClick={stopSpeaking}
-        >
-          🔇
-        </button>
+        <>
+          <button
+            type="button"
+            className="toolbar-btn speaking"
+            title="Pause / Resume AI voice"
+            onClick={handleSpeakerClick}
+          >
+            {speechState.paused ? "▶" : "⏸"}
+          </button>
+
+          <button
+            type="button"
+            className="toolbar-btn speaking"
+            title="Stop AI voice"
+            onClick={stopSpeaking}
+          >
+            🔇
+          </button>
+        </>
       ) : (
         <button
           type="button"
           className="toolbar-btn"
           title="Listen to AI answer"
-          onClick={startSpeaking}
+          onClick={handleSpeakerClick}
         >
           🔊
         </button>
       )}
 
-      {/* Export PDF */}
+      {/* Export chat to PDF */}
       <button
         type="button"
         className="toolbar-btn"
