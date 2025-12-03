@@ -1,6 +1,14 @@
 // src/utils/api.js
-const BACKEND_URL = "http://localhost:8000";
 
+// Backend URLs
+const LOCAL_BACKEND = "http://localhost:8000";
+const SERVER_BACKEND = "https://ai-career-guide-backend.onrender.com"; // <-- will update after backend deploy
+
+// Auto-select backend: local or deployed
+const BACKEND_URL =
+  window.location.hostname === "localhost" ? LOCAL_BACKEND : SERVER_BACKEND;
+
+// Send message to backend
 export const sendMessage = async (payload) => {
   const res = await fetch(`${BACKEND_URL}/api/v1/message`, {
     method: "POST",
@@ -11,12 +19,14 @@ export const sendMessage = async (payload) => {
   return res.json();
 };
 
+// Fetch chat history
 export const fetchHistory = async (sessionId) => {
   const res = await fetch(`${BACKEND_URL}/api/v1/history/${sessionId}`);
   if (!res.ok) throw new Error("History API error");
   return res.json();
 };
 
+// Create a new chat session
 export const newSession = async (userId) => {
   const res = await fetch(`${BACKEND_URL}/api/v1/new-session`, {
     method: "POST",
@@ -27,7 +37,7 @@ export const newSession = async (userId) => {
   return res.json();
 };
 
-// DELETE session from DB
+// Delete session
 export const deleteSession = async (sessionId) => {
   const res = await fetch(`${BACKEND_URL}/api/v1/delete/${sessionId}`, {
     method: "DELETE",
