@@ -46,3 +46,27 @@
 .user-avatar {
   background: #3b82f6;
 }
+/* Ensure speaker button inside AI bubble becomes visible */
+.msg-bubble.ai button {
+  margin-top: 10px;
+  background: #1e3a8a;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: inline-block;
+}
+
+/* Ensure bubble height grows automatically */
+.msg-bubble.ai {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fix speaker button clipping */
+.msg-bubble.ai p:last-child {
+  margin-bottom: 12px !important;
+}
+
