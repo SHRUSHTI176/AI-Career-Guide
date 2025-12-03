@@ -35,17 +35,24 @@ print("💾 MongoDB Connected Successfully!")
 # FastAPI Setup
 app = FastAPI()
 
+# 🌍 CORS for local + Vercel frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=[
+        "http://localhost:5173",
+        "https://ai-career-guide-itof.vercel.app",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 # Request Models
 class SessionRequest(BaseModel):
     user_id: str
+
 
 class MessageRequest(BaseModel):
     session_id: str
@@ -62,6 +69,7 @@ def fix_ids(data):
     if isinstance(data, ObjectId):
         return str(data)
     return data
+
 
 @app.get("/")
 async def home():
@@ -81,14 +89,13 @@ async def new_session(body: SessionRequest):
     return {"session_id": session_id}
 
 
-# Send Message + AI Reply (Smart & Short)
+# Send Message + AI Reply
 @app.post("/api/v1/message")
 async def send_msg(body: MessageRequest):
     session = chats.find_one({"_id": body.session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session Not Found ❌")
 
-    # Save user message
     chats.update_one(
         {"_id": body.session_id},
         {"$push": {"messages": {"role": "user", "text": body.text}}}
@@ -96,17 +103,16 @@ async def send_msg(body: MessageRequest):
 
     print("🧠 User Prompt:", body.text)
 
-    # Guided Response Prompt
     instruction = f"""
 You are Aurora Mentor — a friendly career advisor for engineering students.
 
-Respond rules:
-1️⃣ Keep answers SHORT (max 120 words)
-2️⃣ Break long topics into **parts**
-3️⃣ At the end ALWAYS ask a short follow-up question
-4️⃣ Also ALWAYS suggest 2–4 short reply buttons like:
-   ["Next part ➜", "Example projects", "Roadmap", "Skills needed"]
-5️⃣ Format clean — no long paragraphs
+Rules:
+- Short helpful answers (max ~120 words)
+- Break knowledge in simple parts
+- Always ask a small follow-up question at the end
+- Always suggest short reply buttons like:
+  ["Next part ➜", "Roadmap", "Skills needed"]
+- No long paragraphs
 
 User: {body.text}
 """
@@ -122,9 +128,6 @@ User: {body.text}
             if response and response.candidates else "⚠ AI returned empty response"
         )
 
-        print("🤖 AI Reply:", reply_text)
-
-        # Extract quick suggestions from response (fallback if missing)
         suggestions = ["Next part ➜", "Roadmap", "Skills needed"]
         if "?" in reply_text:
             suggestions.insert(0, "Answer ➜")
@@ -133,7 +136,6 @@ User: {body.text}
         reply_text = f"⚠ AI Error: {str(e)}"
         suggestions = []
 
-    # Save AI message including suggestions
     ai_msg = {"role": "ai", "text": reply_text, "suggestions": suggestions}
 
     chats.update_one(
@@ -148,10 +150,19 @@ User: {body.text}
     }
 
 
-# Chat History
+# Get Chat History
 @app.get("/api/v1/history/{session_id}")
 async def history(session_id: str):
     session = chats.find_one({"_id": session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return fix_ids(session["messages"])
+
+
+# Delete Session ✔️ FIX
+@app.delete("/api/v1/delete/{session_id}")
+async def delete_session(session_id: str):
+    result = chats.delete_one({"_id": session_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Session not found ❌")
+    return {"status": "deleted", "session_id": session_id}
