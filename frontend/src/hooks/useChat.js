@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useVoice } from "./useVoice";
 import { cleanForSpeech } from "../utils/markdownCleaner";
-
-const API_BASE = "http://localhost:8000/api/v1";
+import { sendMessage, fetchHistory, newSession } from "../utils/api"; 
 
 export function useChat({ activeSessionId, setActiveSessionId, userName }) {
   const [messages, setMessages] = useState([]);
@@ -21,7 +20,7 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
     onTranscript: (txt) => setInput((prev) => prev + " " + txt),
   });
 
-  // ➤ Load History on session change
+  // Load History if session changes
   useEffect(() => {
     if (!activeSessionId) return;
     loadHistory();
@@ -29,24 +28,20 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
 
   const loadHistory = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/history/${activeSessionId}`);
-      setMessages(res.data || []);
+      const res = await fetchHistory(activeSessionId);
+      setMessages(res || []);
     } catch (err) {
       console.error("History load error:", err);
     }
   };
 
-  // ➤ Create Session if Missing
   const ensureSession = async () => {
     if (activeSessionId) return activeSessionId;
-    const res = await axios.post(`${API_BASE}/new-session`, {
-      user_id: userName || "guest",
-    });
-    setActiveSessionId(res.data.session_id);
-    return res.data.session_id;
+    const res = await newSession(userName || "guest");
+    setActiveSessionId(res.session_id);
+    return res.session_id;
   };
 
-  // 🆕 SMART AI — Short chunk answers + Follow-up question
   const handleSend = async () => {
     const text = input.trim();
     if (!text) return;
@@ -56,36 +51,23 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
     const sessionId = await ensureSession();
     const userMsg = { role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
-    setQuickReplies([]); // clear old suggestions
+    setQuickReplies([]);
 
     setIsTyping(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/message`, {
+      const res = await sendMessage({
         session_id: sessionId,
         user_id: userName || "guest",
         text,
-        options: {
-          chunked: true,
-          askConfirmation: true,
-          maxLength: 250, // limit reply length
-        },
       });
 
-      const bot = res.data.reply;
-      const botMsg = { role: "ai", text: bot };
-      setMessages((prev) => [...prev, botMsg]);
+      const botText = res.reply || "⚠ No reply from AI";
+      const aiMsg = { role: "ai", text: botText };
 
-      speakText(cleanForSpeech(bot));
-
-      // ✨ Add Smart Suggestions (ChatGPT Style)
-      setQuickReplies([
-        "Next part ➜",
-        "Show internships",
-        "Weekly plan",
-        "Skills to learn next",
-        "Short summary"
-      ]);
+      setMessages((prev) => [...prev, aiMsg]);
+      speakText(cleanForSpeech(botText));
+      setQuickReplies(res.suggestions || []);
     } catch (err) {
       console.error("Message error:", err);
     }
@@ -93,7 +75,6 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
     setIsTyping(false);
   };
 
-  // ➤ Quick Replies: Auto-send
   const handleQuickPrompt = (prompt) => {
     setInput(prompt);
     handleSend();
@@ -118,8 +99,5 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
     stopSpeaking,
     startListening,
     stopListening,
-
-    handleExportPDF: () => alert("PDF Export Coming Soon 📄"),
-    handleUploadFiles: () => alert("File Upload Coming Soon 📎"),
   };
 }
