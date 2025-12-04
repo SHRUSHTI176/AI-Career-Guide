@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pymongo import MongoClient
 from bson import ObjectId
+
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -20,7 +21,8 @@ print("🔑 Gemini API Key Loaded!")
 
 # Gemini Client Setup
 genai.configure(api_key=GEMINI_KEY)
-MODEL_NAME = "gemini-2.5-flash-001"  # ✅ Correct working model
+
+MODEL_NAME = "models/gemini-2.5-flash-001"  # working model
 print("🎯 Using Model:", MODEL_NAME)
 
 # MongoDB Setup
@@ -35,11 +37,12 @@ print("💾 MongoDB Connected Successfully!")
 # FastAPI Setup
 app = FastAPI()
 
+# CORS for local + deployed frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://ai-career-guide-itof.vercel.app",
+        "https://ai-career-guide-o54n.vercel.app",
         "*"
     ],
     allow_credentials=True,
@@ -47,14 +50,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Request Models
 class SessionRequest(BaseModel):
     user_id: str
+
 
 class MessageRequest(BaseModel):
     session_id: str
     user_id: str
     text: str
 
+
+# Fix MongoDB IDs
 def fix_ids(data):
     if isinstance(data, list):
         return [fix_ids(i) for i in data]
@@ -64,10 +72,14 @@ def fix_ids(data):
         return str(data)
     return data
 
+
+# Root Route
 @app.get("/")
 async def home():
     return {"status": "ok", "message": "AI Career Guide Backend Running 🚀"}
 
+
+# Create New Session
 @app.post("/api/v1/new-session")
 async def new_session(body: SessionRequest):
     session_id = f"{body.user_id}_{uuid.uuid4().hex[:6]}"
@@ -79,6 +91,8 @@ async def new_session(body: SessionRequest):
     print("🆕 New Session Created:", session_id)
     return {"session_id": session_id}
 
+
+# Chat Processing Route
 @app.post("/api/v1/message")
 async def send_msg(body: MessageRequest):
 
@@ -86,6 +100,7 @@ async def send_msg(body: MessageRequest):
     if not session:
         raise HTTPException(status_code=404, detail="Session Not Found ❌")
 
+    # Save user message
     chats.update_one(
         {"_id": body.session_id},
         {"$push": {"messages": {"role": "user", "text": body.text}}}
@@ -98,8 +113,8 @@ You are Aurora Mentor — a friendly career advisor for engineering students.
 
 Rules:
 - Short helpful answers (max 120 words)
-- Bullet points where possible
-- End with a simple follow-up question
+- Break knowledge into simple bullet points
+- End with a small follow-up question
 - Always suggest reply buttons: ["Next ➜", "Roadmap", "Skills needed"]
 
 User: {body.text}
@@ -109,39 +124,11 @@ User: {body.text}
         model = genai.GenerativeModel(MODEL_NAME)
         response = model.generate_content(prompt)
 
-        # ✅ SAFELY extract AI reply
-        try:
-            reply_text = response.candidates[0].content.parts[0].text.strip()
-        except:
-            reply_text = "⚠ AI response format changed!"
+        reply_text = response.text.strip() if response.text else "⚠ AI returned an empty reply."
 
         suggestions = ["Next ➜", "Roadmap", "Skills needed"]
         if "?" in reply_text:
             suggestions.insert(0, "Answer ➜")
-
     except Exception as e:
         reply_text = f"⚠ AI Error: {str(e)}"
         suggestions = []
-
-    ai_msg = {"role": "ai", "text": reply_text, "suggestions": suggestions}
-
-    chats.update_one(
-        {"_id": body.session_id},
-        {"$push": {"messages": ai_msg}}
-    )
-
-    return {"reply": reply_text, "suggestions": suggestions}
-
-@app.get("/api/v1/history/{session_id}")
-async def history(session_id: str):
-    session = chats.find_one({"_id": session_id})
-    if not session:
-        raise HTTPException(status_code=404, detail="Session Not Found ❌")
-    return fix_ids(session["messages"])
-
-@app.delete("/api/v1/delete/{session_id}")
-async def delete_session(session_id: str):
-    result = chats.delete_one({"_id": session_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Session Not Found ❌")
-    return {"status": "deleted", "session_id": session_id}
