@@ -2,7 +2,7 @@
 
 // Backend URLs
 const LOCAL_BACKEND = "http://localhost:8000";
-const SERVER_BACKEND = "https://ai-career-guide-backend-v2.onrender.com"; // Updated !!!
+const SERVER_BACKEND = "https://ai-career-guide-backend-v2.onrender.com"; // Your deployed backend
 
 // Auto-select backend: local or deployed
 const BACKEND_URL =
