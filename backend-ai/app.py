@@ -19,9 +19,10 @@ if not GEMINI_KEY:
 
 print("🔑 Gemini API Key Loaded!")
 
+# Gemini Setup
 genai.configure(api_key=GEMINI_KEY)
-
-MODEL_NAME = "models/gemini-2.5-flash-001"
+MODEL_NAME = "gemini-2.5-flash"
+model = genai.GenerativeModel(MODEL_NAME)
 print("🎯 Using Model:", MODEL_NAME)
 
 # MongoDB Setup
@@ -36,7 +37,7 @@ print("💾 MongoDB Connected Successfully!")
 # FastAPI Setup
 app = FastAPI()
 
-# CORS
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Models
+# Request Models
 class SessionRequest(BaseModel):
     user_id: str
 
@@ -54,8 +55,7 @@ class MessageRequest(BaseModel):
     user_id: str
     text: str
 
-
-# Helper: Fix MongoDB IDs
+# Fix ObjectId in JSON
 def fix_ids(data):
     if isinstance(data, list):
         return [fix_ids(i) for i in data]
@@ -65,14 +65,11 @@ def fix_ids(data):
         return str(data)
     return data
 
-
-# Root Handler
 @app.get("/")
 async def home():
     return {"status": "ok", "message": "AI Career Guide Backend Running 🚀"}
 
-
-# Create New Session
+# Create New Chat Session
 @app.post("/api/v1/new-session")
 async def new_session(body: SessionRequest):
     session_id = f"{body.user_id}_{uuid.uuid4().hex[:6]}"
@@ -81,40 +78,36 @@ async def new_session(body: SessionRequest):
         "user_id": body.user_id,
         "messages": []
     })
-    print("🆕 New Session Created:", session_id)
+    print("🆕 Session:", session_id)
     return {"session_id": session_id}
 
-
-# AI Reply Handler
+# Send Message to AI
 @app.post("/api/v1/message")
 async def send_msg(body: MessageRequest):
-    
+
     session = chats.find_one({"_id": body.session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session Not Found ❌")
 
-    # Save User Message
+    # Save user message
     chats.update_one(
         {"_id": body.session_id},
         {"$push": {"messages": {"role": "user", "text": body.text}}}
     )
+
     print("🧠 User:", body.text)
 
     prompt = f"""
-You are Aurora Mentor — a friendly career advisor for engineering students.
-
-Rules:
-- Reply briefly (max 120 words)
-- Use simple bullet points
-- End with a follow-up question
+You are Aurora Mentor — a friendly career guide AI for engineering students.
+- Keep replies short (max 120 words)
+- Use bullet points
+- Ask a follow-up question
 
 User: {body.text}
 """
 
     try:
-        model = genai.GenerativeModel(MODEL_NAME)
         response = model.generate_content(prompt)
-
         reply_text = getattr(response, "text", "⚠ AI sent no text")
 
         suggestions = ["Next ➜", "Roadmap", "Skills needed"]
@@ -125,7 +118,6 @@ User: {body.text}
         reply_text = f"⚠ AI Error: {str(e)}"
         suggestions = []
 
-    # Save AI reply
     ai_msg = {"role": "ai", "text": reply_text, "suggestions": suggestions}
     chats.update_one(
         {"_id": body.session_id},
@@ -134,8 +126,7 @@ User: {body.text}
 
     return {"reply": reply_text, "suggestions": suggestions}
 
-
-# Fetch Chat History
+# Fetch History
 @app.get("/api/v1/history/{session_id}")
 async def history(session_id: str):
     session = chats.find_one({"_id": session_id})
@@ -143,8 +134,7 @@ async def history(session_id: str):
         raise HTTPException(status_code=404, detail="Session Not Found ❌")
     return fix_ids(session["messages"])
 
-
-# Delete Session
+# Delete Chat Session
 @app.delete("/api/v1/delete/{session_id}")
 async def delete_session(session_id: str):
     result = chats.delete_one({"_id": session_id})
