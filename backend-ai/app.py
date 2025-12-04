@@ -141,3 +141,34 @@ async def delete_session(session_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Session Not Found ❌")
     return {"status": "deleted", "session_id": session_id}
+
+
+# 🔊 TTS API — Speak AI Messages (Added as requested)
+@app.post("/api/v1/speak")
+async def speak(body: dict):
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    try:
+        response = model.generate_content(
+            text,
+            generation_config={
+                "response_mime_type": "audio/wav"
+            }
+        )
+
+        audio_data = response.audio
+        file_path = "tts.wav"
+        with open(file_path, "wb") as f:
+            f.write(audio_data)
+
+        return {"url": "/audio/tts.wav"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Serve Audio File
+from fastapi.staticfiles import StaticFiles
+app.mount("/audio", StaticFiles(directory="."), name="audio")
