@@ -99,16 +99,25 @@ async def send_msg(body: MessageRequest):
 
     prompt = f"""
 You are Aurora Mentor — a friendly career guide AI for engineering students.
-- Keep replies short (max 120 words)
-- Use bullet points
-- Ask a follow-up question
+Respond in clear points:
+- Max 120 words
+- Bullet points only
+- End with a follow-up question
 
 User: {body.text}
 """
 
     try:
-        response = model.generate_content(prompt)
-        reply_text = getattr(response, "text", "⚠ AI sent no text")
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.5,
+                "top_p": 0.9,
+                "response_mime_type": "text/plain"
+            }
+        )
+
+        reply_text = response.text.strip()
 
         suggestions = ["Next ➜", "Roadmap", "Skills needed"]
         if "?" in reply_text:
@@ -134,6 +143,7 @@ async def history(session_id: str):
         raise HTTPException(status_code=404, detail="Session Not Found ❌")
     return fix_ids(session["messages"])
 
+
 # Delete Chat Session
 @app.delete("/api/v1/delete/{session_id}")
 async def delete_session(session_id: str):
@@ -143,7 +153,7 @@ async def delete_session(session_id: str):
     return {"status": "deleted", "session_id": session_id}
 
 
-# 🔊 TTS API — Speak AI Messages (Added as requested)
+# 🔊 TTS API — Speak Aurora Mentor replies
 @app.post("/api/v1/speak")
 async def speak(body: dict):
     text = body.get("text", "")
