@@ -1,222 +1,106 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  FaPlus,
-  FaMicrophone,
-  FaPaperPlane,
-  FaCamera,
-  FaImage,
-  FaFilePdf,
-  FaPause,
-  FaPlay,
-  FaStop,
-} from "react-icons/fa";
-import TypingIndicator from "./TypingIndicator";
-import { useChat } from "../hooks/useChat";
+// src/components/MessageBubble.jsx
+import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-const ChatWindow = ({
-  theme,
-  activeSessionId,
-  setActiveSessionId,
-  aiName,
-  userName,
-}) => {
-  const {
-    messages,
-    input,
-    setInput,
-    isTyping,
-    handleSend,
-    quickReplies,
-    speakText,
-    pauseSpeaking,
-    resumeSpeaking,
-    stopSpeaking,
-    speechState,
-    startListening,
-  } = useChat({ activeSessionId, setActiveSessionId, userName });
+const backendURL = "https://ai-career-guide-backend-v2.onrender.com";
 
-  const [showAttachments, setShowAttachments] = useState(false);
-  const [currentlyPlayingText, setCurrentlyPlayingText] = useState("");
+const MessageBubble = ({ role, text, theme }) => {
+  const isUser = role === "user";
 
-  const messageEndRef = useRef(null);
-  const cameraRef = useRef(null);
-  const galleryRef = useRef(null);
-  const pdfRef = useRef(null);
+  const [audioObj, setAudioObj] = useState(null);
+  const [audioStatus, setAudioStatus] = useState("idle"); 
+  // idle | playing | paused
 
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  const handlePlayPauseResume = async () => {
+    try {
+      if (audioStatus === "idle") {
+        // Ask backend for audio file
+        const res = await fetch(`${backendURL}/api/v1/speak`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
 
-  const handlePlayVoice = (text) => {
-    if (speechState?.speaking && currentlyPlayingText === text) {
-      stopSpeaking();
-      setCurrentlyPlayingText("");
-    } else {
-      speakText(text);
-      setCurrentlyPlayingText(text);
+        const data = await res.json();
+        if (!data.url) return;
+
+        const audio = new Audio(`${backendURL}${data.url}`);
+        setAudioObj(audio);
+
+        audio.play();
+        setAudioStatus("playing");
+
+        audio.onended = () => {
+          setAudioStatus("idle");
+          setAudioObj(null);
+        };
+      } 
+      else if (audioStatus === "playing") {
+        audioObj.pause();
+        setAudioStatus("paused");
+      }
+      else if (audioStatus === "paused") {
+        audioObj.play();
+        setAudioStatus("playing");
+      }
+    } catch (error) {
+      console.error("Audio Error:", error);
     }
   };
 
-  const handleFileUpload = (e, label) => {
-    if (!e.target.files[0]) return;
-    alert(`${label} upload feature coming soon 📂`);
+  const handleStop = () => {
+    if (audioObj) {
+      audioObj.pause();
+      audioObj.currentTime = 0;
+      setAudioStatus("idle");
+      setAudioObj(null);
+    }
   };
 
-  const formatText = (text) => {
-    return text.split("\n").map((line, i) => {
-      if (!line.trim()) return <br key={i} />;
-      if (line.startsWith("##"))
-        return <h3 key={i}>{line.replace("##", "")}</h3>;
-      if (line.startsWith("*"))
-        return <li key={i}>{line.replace("*", "")}</li>;
-      return <p key={i}>{line}</p>;
-    });
+  const getPlayIcon = () => {
+    if (audioStatus === "idle") return "🔊";   // Play
+    if (audioStatus === "playing") return "⏸"; // Pause
+    if (audioStatus === "paused") return "▶️"; // Resume
   };
 
   return (
-    <div className="chat-wrapper-outer">
-      <header className="chat-top-header">
-        <img src="/ai-avatar.png" className="ai-avatar-img" alt="AI" />
-        <div>
-          <strong>{aiName}</strong>
-          <span className="ai-role-text">Your AI Mentor for careers & growth</span>
-        </div>
-      </header>
+    <div className={`msg-row ${isUser ? "user" : "ai"}`}>
+      
+      {!isUser && <div className="bubble-avatar ai-avatar" />}
 
-      <div className="chat-scroll-area">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`msg-row ${msg.role === "user" ? "user" : "ai"}`}
-          >
-            {msg.role === "ai" && (
-              <img
-                src="/ai-avatar.png"
-                className="chat-avatar chat-avatar-ai"
-                alt="AI"
-              />
-            )}
+      <div className={`msg-bubble ${isUser ? "user" : "ai"} ${theme}`}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {text}
+        </ReactMarkdown>
 
-            <div
-              className={`msg-bubble ${msg.role} ${theme === "dark" ? "dark" : "light"}`}
+        {/* ✔ Speaker controls only for AI */}
+        {!isUser && (
+          <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
+            <span
+              style={{ cursor: "pointer", fontSize: "22px" }}
+              onClick={handlePlayPauseResume}
             >
-              {formatText(msg.text)}
+              {getPlayIcon()}
+            </span>
 
-              {msg.role === "ai" && (
-                <div
-                  className="speaker-btn-area"
-                  style={{ marginTop: "6px", cursor: "pointer" }}
-                  onClick={() => handlePlayVoice(msg.text)}
-                >
-                  {speechState?.speaking && currentlyPlayingText === msg.text
-                    ? "⏸"
-                    : "🔊"}
-                </div>
-              )}
-            </div>
-
-            {msg.role === "user" && (
-              <img
-                src={localStorage.getItem("userAvatar") || "/default-user.png"}
-                className="chat-avatar chat-avatar-user"
-                alt="User"
-              />
+            {/* ⏹ Stop Button */}
+            {audioStatus !== "idle" && (
+              <span
+                style={{ cursor: "pointer", fontSize: "22px" }}
+                onClick={handleStop}
+              >
+                ⏹
+              </span>
             )}
-          </div>
-        ))}
-
-        {isTyping && (
-          <div className="typing-row">
-            <img src="/ai-avatar.png" className="chat-avatar chat-avatar-ai" />
-            <TypingIndicator />
           </div>
         )}
 
-        <div ref={messageEndRef} />
       </div>
 
-      {currentlyPlayingText && (
-        <div className="voice-control-floating">
-          <button className="voice-control-btn" onClick={pauseSpeaking}>
-            <FaPause />
-          </button>
-          <button className="voice-control-btn" onClick={resumeSpeaking}>
-            <FaPlay />
-          </button>
-          <button
-            className="voice-control-btn stop"
-            onClick={() => {
-              stopSpeaking();
-              setCurrentlyPlayingText("");
-            }}
-          >
-            <FaStop />
-          </button>
-        </div>
-      )}
-
-      <div className="chat-input-bar">
-        <button
-          className="circle-icon"
-          onClick={() => setShowAttachments(!showAttachments)}
-        >
-          <FaPlus />
-        </button>
-
-        <input
-          className="chat-input"
-          placeholder="Ask your career doubts..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-        />
-
-        <button className="circle-icon" onClick={startListening}>
-          <FaMicrophone />
-        </button>
-
-        <button className="send-btn" onClick={handleSend}>
-          <FaPaperPlane />
-        </button>
-      </div>
-
-      {showAttachments && (
-        <div className="attachment-sheet">
-          <button onClick={() => cameraRef.current.click()}>
-            <FaCamera /> Camera
-          </button>
-          <button onClick={() => galleryRef.current.click()}>
-            <FaImage /> Gallery
-          </button>
-          <button onClick={() => pdfRef.current.click()}>
-            <FaFilePdf /> Upload PDF
-          </button>
-
-          <input
-            type="file"
-            ref={cameraRef}
-            accept="image/*"
-            onChange={(e) => handleFileUpload(e, "Camera")}
-            hidden
-          />
-          <input
-            type="file"
-            ref={galleryRef}
-            accept="image/*"
-            onChange={(e) => handleFileUpload(e, "Gallery")}
-            hidden
-          />
-          <input
-            type="file"
-            ref={pdfRef}
-            accept="application/pdf"
-            onChange={(e) => handleFileUpload(e, "PDF")}
-            hidden
-          />
-        </div>
-      )}
+      {isUser && <div className="bubble-avatar user-avatar" />}
     </div>
   );
 };
 
-export default ChatWindow;
+export default MessageBubble;
