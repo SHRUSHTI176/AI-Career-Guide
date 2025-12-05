@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { useVoice } from "./useVoice";
+import useVoice from "./useVoice";
 import { cleanForSpeech } from "../utils/markdownCleaner";
-import { sendMessage, fetchHistory, newSession } from "../utils/api"; 
+import { sendMessage, fetchHistory, newSession } from "../utils/api";
 
 export function useChat({ activeSessionId, setActiveSessionId, userName }) {
   const [messages, setMessages] = useState([]);
@@ -11,35 +10,33 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
   const [quickReplies, setQuickReplies] = useState([]);
 
   const {
-    state: speechState,
-    speakText,
+    state: voiceState,
+    startSpeaking,
+    pauseSpeaking,
+    resumeSpeaking,
     stopSpeaking,
     startListening,
     stopListening,
   } = useVoice({
-    onTranscript: (txt) => setInput((prev) => prev + " " + txt),
+    onTranscript: (t) => setInput(prev => prev + " " + t),
   });
 
-  // Load History if session changes
   useEffect(() => {
-    if (!activeSessionId) return;
-    loadHistory();
+    if (activeSessionId) loadHistory();
   }, [activeSessionId]);
 
   const loadHistory = async () => {
-    try {
-      const res = await fetchHistory(activeSessionId);
-      setMessages(res || []);
-    } catch (err) {
-      console.error("History load error:", err);
-    }
+    const res = await fetchHistory(activeSessionId);
+    if (res) setMessages(res);
   };
 
   const ensureSession = async () => {
-    if (activeSessionId) return activeSessionId;
-    const res = await newSession(userName || "guest");
-    setActiveSessionId(res.session_id);
-    return res.session_id;
+    if (!activeSessionId) {
+      const res = await newSession(userName || "guest");
+      setActiveSessionId(res.session_id);
+      return res.session_id;
+    }
+    return activeSessionId;
   };
 
   const handleSend = async () => {
@@ -47,56 +44,42 @@ export function useChat({ activeSessionId, setActiveSessionId, userName }) {
     if (!text) return;
 
     setInput("");
-
-    const sessionId = await ensureSession();
-    const userMsg = { role: "user", text };
-    setMessages((prev) => [...prev, userMsg]);
     setQuickReplies([]);
+    const sessionId = await ensureSession();
 
+    setMessages(prev => [...prev, { role: "user", text }]);
     setIsTyping(true);
 
-    try {
-      const res = await sendMessage({
-        session_id: sessionId,
-        user_id: userName || "guest",
-        text,
-      });
+    const res = await sendMessage({
+      session_id: sessionId,
+      user_id: userName || "guest",
+      text,
+    });
 
-      const botText = res.reply || "⚠ No reply from AI";
-      const aiMsg = { role: "ai", text: botText };
+    const reply = res.reply || "No reply available";
+    setMessages(prev => [...prev, { role: "ai", text: reply }]);
 
-      setMessages((prev) => [...prev, aiMsg]);
-      speakText(cleanForSpeech(botText));
-      setQuickReplies(res.suggestions || []);
-    } catch (err) {
-      console.error("Message error:", err);
-    }
-
+    startSpeaking(cleanForSpeech(reply)); // 👈 speak voice properly
+    setQuickReplies(res.suggestions || []);
     setIsTyping(false);
   };
 
-  const handleQuickPrompt = (prompt) => {
-    setInput(prompt);
-    handleSend();
-  };
-
+  // We expose exactly what ChatWindow expects
   return {
     messages,
     input,
     setInput,
-    isTyping,
     handleSend,
-    handleQuickPrompt,
+    isTyping,
     quickReplies,
-    speechState,
 
-    startSpeaking: () => {
-      const last = [...messages].reverse().find((m) => m.role === "ai");
-      if (!last) return;
-      speakText(cleanForSpeech(last.text));
-    },
-
+    // 🔊 Voice functions returned correctly now
+    speakText: startSpeaking,
+    pauseSpeaking,
+    resumeSpeaking,
     stopSpeaking,
+    speechState: voiceState,
+
     startListening,
     stopListening,
   };
